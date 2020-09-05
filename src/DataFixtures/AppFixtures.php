@@ -47,6 +47,7 @@ class AppFixtures extends Fixture
     public function generateCompanies(): array
     {
         $companies = [];
+        $faker = Factory::class;
 
         for ($i = 0; $i < 5; $i++) {
             $company = new Company();

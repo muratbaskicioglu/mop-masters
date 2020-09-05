@@ -6,6 +6,7 @@ use App\Repository\CleanerRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * @ORM\Entity(repositoryClass=CleanerRepository::class)
@@ -16,17 +17,20 @@ class Cleaner
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
+     * @Groups({"cleaner_list"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Groups({"cleaner_list"})
      */
     private $name;
 
     /**
      * @ORM\ManyToOne(targetEntity=Company::class, inversedBy="cleaners")
      * @ORM\JoinColumn(nullable=false)
+     * @Groups({"cleaner_list"})
      */
     private $company;
 
@@ -98,5 +102,15 @@ class Cleaner
         }
 
         return $this;
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'name' => $this->getName(),
+            'company' => $this->getCompany(),
+            'bookings' => $this->getBookings(),
+        ];
     }
 }
