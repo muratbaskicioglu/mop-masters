@@ -31,7 +31,6 @@ class CleanerController extends AbstractController
      *     )
      * )
      * @SWG\Tag(name="cleaners")
-     * @Security(name="Bearer")
      *
      * @param CleanerRepository $cleanerRepository
      * @param SerializerInterface $serializer

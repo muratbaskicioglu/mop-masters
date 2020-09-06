@@ -17,13 +17,13 @@ class Cleaner
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
-     * @Groups({"cleaner_list"})
+     * @Groups({"cleaner_list", "booking_list"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
-     * @Groups({"cleaner_list"})
+     * @Groups({"cleaner_list", "booking_list"})
      */
     private $name;
 
@@ -47,6 +47,13 @@ class Cleaner
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function setId(int $id): self
+    {
+        $this->id = $id;
+
+        return $this;
     }
 
     public function getName(): ?string
