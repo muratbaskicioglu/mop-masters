@@ -13,6 +13,7 @@ use Doctrine\ORM\ORMException;
 use App\Service\CleanerService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class BookingService
 {
@@ -44,7 +45,7 @@ class BookingService
             'H:i:s',
             $bookingCreateRequest->getStartTime()
         )
-            ->add(new DateInterval("PT{$bookingUpdateRequest->getDurationByHours()}H"));
+            ->add(new DateInterval("PT{$bookingCreateRequest->getDurationByHours()}H"));
 
         $isCleanerAvailable = $this->cleanerService->isCleanerAvailableAt(
             $cleaner,
@@ -56,9 +57,9 @@ class BookingService
         $this->logger->info('Is cleaner available: '.$isCleanerAvailable);
 
         if (!$isCleanerAvailable) {
-            throw new \Exception(
-                'This cleaner isn\'t available at that time.',
-                Response::HTTP_CONFLICT
+            throw new HttpException(
+                Response::HTTP_CONFLICT,
+                'This cleaner isn\'t available at that time.'
             );
         }
 
@@ -75,9 +76,9 @@ class BookingService
         $booking = $this->get($bookingId);
 
         if (!$booking) {
-            throw new \Exception(
-                'No booking found for id '.$bookingId,
-                Response::HTTP_NOT_FOUND
+            throw new HttpException(
+                Response::HTTP_NOT_FOUND,
+                'No booking found for id '.$bookingId
             );
         }
 
@@ -97,9 +98,9 @@ class BookingService
         );
 
         if (!$isCleanerAvailable) {
-            throw new \Exception(
-                'This cleaner isn\'t available at that time.',
-                Response::HTTP_CONFLICT
+            throw new HttpException(
+                Response::HTTP_CONFLICT,
+                'This cleaner isn\'t available at that time.'
             );
         }
 

@@ -18,7 +18,7 @@ use Swagger\Annotations as SWG;
 /**
  * @Route("/cleaners", name="cleaner_")
  */
-class CleanerController extends AbstractController
+class CleanerController extends BaseController
 {
     /**
      * @Route(name="list", methods={"GET"})

@@ -18,11 +18,12 @@ use Swagger\Annotations as SWG;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * @Route("/bookings", name="bookings_")
  */
-class BookingController extends AbstractController
+class BookingController extends BaseController
 {
     /**
      * @Route(name="create", methods={"POST"})
@@ -51,7 +52,7 @@ class BookingController extends AbstractController
      * @param BookingService $bookingService
      * @param SerializerInterface $serializer
      * @return JsonResponse
-     * @throws \Exception
+     * @throws HttpException
      */
     public function create(
         BookingCreateRequest $bookingCreateRequest,
@@ -111,10 +112,7 @@ class BookingController extends AbstractController
      * @SWG\Response(
      *     response=Response::HTTP_OK,
      *     description="Returns updated booking.",
-     *     @SWG\Schema(
-     *        type="object",
-     *        @SWG\Items(ref=@Model(type=Booking::class))
-     *     )
+     *     @Model(type=Booking::class)
      * )
      * @SWG\Parameter(
      *     name="body",
@@ -136,7 +134,7 @@ class BookingController extends AbstractController
      * @param BookingService $bookingService
      * @param SerializerInterface $serializer
      * @return JsonResponse
-     * @throws \Exception
+     * @throws HttpException
      */
     public function update(
         $bookingId,
