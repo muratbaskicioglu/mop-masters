@@ -4,75 +4,55 @@ namespace App\Exception;
 
 use App\DataTransferObject\Violation;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\Serializer\Encoder\JsonDecode;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 class RequestValidatorException extends BadRequestHttpException
 {
     /**
-     * @var object
+     * @var ConstraintViolationListInterface $violationList
      */
-    protected $error;
+    protected $violationList;
 
     /**
-     * @var SerializerInterface
-     */
-    private $serializer;
-
-    /**
-     * HttpFormException constructor.
+     * RequestValidatorException constructor.
      *
-     * @param ConstraintViolationListInterface $validatorErrors
-     * @param SerializerInterface $serializer
+     * @param ConstraintViolationListInterface $violationList
      */
-    public function __construct(ConstraintViolationListInterface $validatorErrors, SerializerInterface $serializer)
+    public function __construct(ConstraintViolationListInterface $violationList)
     {
         parent::__construct();
 
-        $this->serializer = $serializer;
-        $this->error = $this->parseValidatorErrors($validatorErrors);
-        $this->message = $this->error->title;
+        $this->violationList = $violationList;
+
+        // TODO: Might be created a class to manage all exception constants
+        $this->message = 'Request payload validation error.';
+        $this->code = -1;
     }
 
     /**
-     * @param ConstraintViolationListInterface $validatorErrors
-     *
      * @return mixed
      */
-    public function parseValidatorErrors(ConstraintViolationListInterface $validatorErrors)
+    public function convertViolationListToErrors(): array
     {
-        $serializedErrors = $this->serializer->serialize($validatorErrors, 'json');
+        $errors = [];
 
-        return (new JsonDecode())->decode($serializedErrors, JsonEncoder::FORMAT);
-    }
-
-    /**
-     * @param object $errorViolation
-     *
-     * @return Violation
-     */
-    public function convertErrorViolation(object $errorViolation): Violation
-    {
-        $violation = new Violation();
-        $violation->property = $errorViolation->propertyPath;
-        $violation->message = $errorViolation->title;
-
-        return $violation;
-    }
-
-    /**
-     * @return iterable|array|null
-     */
-    public function getViolations(): ?iterable
-    {
-        $violations = [];
-
-        foreach ($this->error->violations as $errorViolation) {
-            $errors[] = $this->convertErrorViolation($errorViolation);
+        foreach ($this->violationList as $violation) {
+            $errors[] = $this->createViolationObject($violation);
         }
 
-        return $violations;
+        return $errors;
+    }
+
+    /**
+     * @param object $violation
+     * @return Violation
+     */
+    public function createViolationObject($violation): Violation
+    {
+        $violationObject = new Violation();
+        $violationObject->property = $violation->getPropertyPath();
+        $violationObject->message = $violation->getMessage();
+
+        return $violationObject;
     }
 }

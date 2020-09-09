@@ -4,7 +4,6 @@ namespace App\EventListener;
 
 use App\Factory\NormalizerFactory;
 use App\Http\ApiResponse;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -17,17 +16,15 @@ class ExceptionListener
      * @var NormalizerFactory
      */
     private $normalizerFactory;
-    private $logger;
 
     /**
      * ExceptionListener constructor.
      *
      * @param NormalizerFactory $normalizerFactory
      */
-    public function __construct(NormalizerFactory $normalizerFactory, LoggerInterface $logger)
+    public function __construct(NormalizerFactory $normalizerFactory)
     {
         $this->normalizerFactory = $normalizerFactory;
-        $this->logger = $logger;
     }
 
     /**
@@ -65,6 +62,12 @@ class ExceptionListener
             $errors = [];
         }
 
-        return new ApiResponse($exception->getMessage(), null, $errors, $statusCode);
+        return new ApiResponse(
+            $exception->getMessage(),
+            null,
+            $errors ?? [],
+            $exception->getCode(),
+            $statusCode
+        );
     }
 }

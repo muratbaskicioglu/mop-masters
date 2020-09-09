@@ -3,19 +3,12 @@
 namespace App\Serializer;
 
 use App\Exception\RequestValidatorException;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 class RequestValidatorExceptionNormalizer implements NormalizerInterface
 {
-    private $logger;
-    public function __construct(LoggerInterface $logger)
-    {
-        $this->logger = $logger;
-    }
-
     /**
-     * @param RequestValidatorException $exception
+     * @param $exception
      * @param null $format
      * @param array $context
      *
@@ -23,7 +16,7 @@ class RequestValidatorExceptionNormalizer implements NormalizerInterface
      */
     public function normalize($exception, $format = null, array $context = [])
     {
-        return [];
+        return $exception->convertViolationListToErrors();
     }
 
     /**
@@ -34,6 +27,6 @@ class RequestValidatorExceptionNormalizer implements NormalizerInterface
      */
     public function supportsNormalization($data, $format = null): ?bool
     {
-        return false;
+        return $data instanceof RequestValidatorException;
     }
 }

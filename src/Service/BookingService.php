@@ -9,18 +9,11 @@ use App\Repository\BookingRepository;
 use DateInterval;
 use DateTime;
 use DateTimeInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\Validator\Constraints\Date;
 
 class BookingService
 {
-    const DATE_FORMAT = 'Y-m-d';
-    const TIME_FORMAT = 'H:i:s';
-
-    private $logger;
-
     /**
      * @var CleanerService $cleanerService
      */
@@ -36,14 +29,18 @@ class BookingService
      */
     private $bookingRepository;
 
+    /**
+     * BookingService constructor.
+     *
+     * @param CleanerService $cleanerService
+     * @param BookingAssignmentService $bookingAssignmentService
+     * @param BookingRepository $bookingRepository
+     */
     public function __construct(
-        LoggerInterface $logger,
         CleanerService $cleanerService,
         BookingAssignmentService $bookingAssignmentService,
         BookingRepository $bookingRepository
     ) {
-        $this->logger = $logger;
-        $logger->info((new DateTime())->format('Y-m-d H:i:s'));
         $this->cleanerService = $cleanerService;
         $this->bookingAssignmentService = $bookingAssignmentService;
         $this->bookingRepository = $bookingRepository;
@@ -58,8 +55,10 @@ class BookingService
      */
     public function calculateEndTime($startTime, $durationByHours): DateTime
     {
+        $timeFormat = $_ENV['TIME_FORMAT'] ?? Booking::TIME_FORMAT;
+
         return DateTime::createFromFormat(
-            self::TIME_FORMAT,
+            $timeFormat,
             $startTime
         )
             ->add(new DateInterval("PT{$durationByHours}H"));
@@ -111,18 +110,20 @@ class BookingService
      */
     public function calculateBookingStartAndEndDate(string $date, string $startTime, int $durationByHours): ?Booking
     {
+        $timeFormat = $_ENV['BOOKING_TIME_FORMAT'] ?? Booking::TIME_FORMAT;
         $endTime = $this->calculateEndTime($startTime, $durationByHours);
+
         $startDate = new DateTime(
             $date.
             ' '.
-            DateTime::createFromFormat(self::TIME_FORMAT, $startTime)
-                ->format(self::TIME_FORMAT)
+            DateTime::createFromFormat($timeFormat, $startTime)
+                ->format($timeFormat)
         );
         $endDate = new DateTime(
             $date.
             ' '.
-            DateTime::createFromFormat(self::TIME_FORMAT, $endTime->format(self::TIME_FORMAT))
-                ->format(self::TIME_FORMAT)
+            DateTime::createFromFormat($timeFormat, $endTime->format($timeFormat))
+                ->format($timeFormat)
         );
 
         $bookingDates = new Booking();
@@ -171,9 +172,11 @@ class BookingService
         );
 
         if (!$isBookingAllowedAt) {
+            // TODO: Might be created a class to manage all exception constants
             throw new HttpException(
                 Response::HTTP_NOT_ACCEPTABLE,
-                'Booking doesn\'t allowed on these date times.'
+                // TODO: Might be implemented an internationalization for plain text languages
+                'Booking not allowed on these date times.'
             );
         }
 
