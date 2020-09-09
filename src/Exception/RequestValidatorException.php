@@ -41,7 +41,8 @@ class RequestValidatorException extends BadRequestHttpException
      *
      * @return mixed
      */
-    public function parseValidatorErrors(ConstraintViolationListInterface $validatorErrors) {
+    public function parseValidatorErrors(ConstraintViolationListInterface $validatorErrors)
+    {
         $serializedErrors = $this->serializer->serialize($validatorErrors, 'json');
 
         return (new JsonDecode())->decode($serializedErrors, JsonEncoder::FORMAT);

@@ -36,10 +36,11 @@ class ApiResponse extends JsonResponse
             $data = new \ArrayObject();
         }
 
-        $response = [
-            'message' => $message,
-            'data' => $data,
-        ];
+        if ($message) {
+            $response['message'] = $message;
+        }
+
+        $response['data'] = $data;
 
         if ($errors) {
             $response['errors'] = $errors;

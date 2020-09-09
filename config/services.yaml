@@ -38,7 +38,7 @@ services:
         arguments: [ !tagged serializer.normalizer ]
         public: true
 
-    App\DataTransferObject\RequestDTOResolver:
+    App\Http\RequestDTOResolver:
         arguments:
             - '@validator'
         tags:

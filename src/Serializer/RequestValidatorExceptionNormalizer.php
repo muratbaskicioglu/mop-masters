@@ -23,7 +23,7 @@ class RequestValidatorExceptionNormalizer implements NormalizerInterface
      */
     public function normalize($exception, $format = null, array $context = [])
     {
-        return ['aklsdfjas', 'kalsfjslak'];
+        return [];
     }
 
     /**

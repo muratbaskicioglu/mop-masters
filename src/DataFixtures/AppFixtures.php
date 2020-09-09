@@ -41,24 +41,6 @@ class AppFixtures extends Fixture
         return $this;
     }
 
-    /**
-     * @return Company[]
-     */
-    public function generateCompanies(): array
-    {
-        $companies = [];
-        $faker = Factory::class;
-
-        for ($i = 0; $i < 5; $i++) {
-            $company = new Company();
-            $company->setName('Company '.$i);
-
-            $companies[] = $company;
-        }
-
-        return $companies;
-    }
-
     public function loadCleanerFixtures(ObjectManager $manager) {
         $companies = $this->companyRepository->findAll();
 
@@ -72,15 +54,35 @@ class AppFixtures extends Fixture
     }
 
     /**
-     * @param Company[]|array
+     * Generates companies.
      *
+     * @return Company[]
+     */
+    public function generateCompanies(): array
+    {
+        $companies = [];
+
+        for ($i = 1; $i <= 5; $i++) {
+            $company = new Company();
+            $company->setName('Company '.$i);
+
+            $companies[] = $company;
+        }
+
+        return $companies;
+    }
+
+    /**
+     * Generates cleaners with assigning random companies.
+     *
+     * @param Company[]|array
      * @return Cleaner[]|array
      */
     public function generateCleaners(array $companies): array
     {
         $cleaners = [];
 
-        for ($i = 0; $i < 20; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             $company = $companies[mt_rand(0, count($companies) - 1)];
 
             $cleaner = new Cleaner();

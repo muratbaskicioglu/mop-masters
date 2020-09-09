@@ -1,31 +1,53 @@
 <?php
 
-namespace App\DataTransferObject;
+namespace App\Http;
 
+use App\DataTransferObject\RequestDTOInterface;
 use App\Exception\RequestValidatorException;
+use Generator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
-use Symfony\Component\Serializer\Encoder\JsonDecode;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class RequestDTOResolver implements ArgumentValueResolverInterface
 {
+    /**
+     * @var ValidatorInterface $validator
+     */
     private $validator;
-    private $logger;
+
+    /**
+     * @var SerializerInterface $serializer
+     */
     private $serializer;
 
-    public function __construct(ValidatorInterface $validator, LoggerInterface $logger, SerializerInterface $serializer)
+    private $logger;
+
+    /**
+     * RequestDTOResolver constructor.
+     *
+     * @param ValidatorInterface $validator
+     * @param SerializerInterface $serializer
+     * @param LoggerInterface $logger
+     */
+    public function __construct(ValidatorInterface $validator, SerializerInterface $serializer, LoggerInterface $logger)
     {
         $this->validator = $validator;
-        $this->logger = $logger;
         $this->serializer = $serializer;
+        $this->logger = $logger;
     }
 
-    public function supports(Request $request, ArgumentMetadata $argument)
+    /**
+     * Check support.
+     *
+     * @param Request $request
+     * @param ArgumentMetadata $argument
+     * @return bool
+     */
+    public function supports(Request $request, ArgumentMetadata $argument): ?bool
     {
         try {
             $reflection = new \ReflectionClass($argument->getType());
@@ -40,6 +62,13 @@ class RequestDTOResolver implements ArgumentValueResolverInterface
         }
     }
 
+    /**
+     * Validate and resolve the value of DTO.
+     *
+     * @param Request $request
+     * @param ArgumentMetadata $argument
+     * @return Generator|iterable
+     */
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
         $class = $argument->getType();

@@ -2,29 +2,26 @@
 
 namespace App\Controller;
 
-use App\Repository\CleanerRepository;
 use App\Entity\Cleaner;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\Booking;
+use App\Service\CleanerService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
-use Nelmio\ApiDocBundle\Annotation\Security;
 use Swagger\Annotations as SWG;
 
 /**
- * @Route("/cleaners", name="cleaner_")
+ * @Route("/cleaners", name="cleaners_")
  */
 class CleanerController extends BaseController
 {
     /**
+     * Get all cleaners with details
+     *
      * @Route(name="list", methods={"GET"})
      * @SWG\Response(
      *     response=200,
-     *     description="Returns the rewards of an user",
+     *     description="Returns the detail of given cleaner.",
      *     @SWG\Schema(
      *        type="array",
      *        @SWG\Items(ref=@Model(type=Cleaner::class, groups={"cleaner_list"}))
@@ -32,21 +29,38 @@ class CleanerController extends BaseController
      * )
      * @SWG\Tag(name="cleaners")
      *
-     * @param CleanerRepository $cleanerRepository
-     * @param SerializerInterface $serializer
+     * @param CleanerService $cleanerService
      * @return JsonResponse
      */
-    public function list(CleanerRepository $cleanerRepository, SerializerInterface $serializer): JsonResponse
+    public function list(CleanerService $cleanerService): JsonResponse
     {
-        $cleaners = $cleanerRepository->findAll();
+        $cleaners = $cleanerService->getCleanerList();
 
-        return JsonResponse::fromJsonString(
-            $serializer->serialize(
-                $cleaners,
-                'json',
-                ['groups' => 'cleaner_list']
-            ),
-            Response::HTTP_OK
-        );
+        return $this->toJSON($cleaners, 'cleaner_list');
+    }
+
+    /**
+     * Get unavailable(already booked) date times of specified cleaner
+     *
+     * @Route("/{cleanerId}/unavailable-times", name="unavailable_times", methods={"GET"})
+     * @SWG\Response(
+     *     response=200,
+     *     description="Returns the unavailable times of a cleaner.",
+     *     @SWG\Schema(
+     *        type="array",
+     *        @SWG\Items(ref=@Model(type=Booking::class, groups={"unavailable_times"}))
+     *     )
+     * )
+     * @SWG\Tag(name="cleaners")
+     *
+     * @param string $cleanerId
+     * @param CleanerService $cleanerService
+     * @return JsonResponse
+     */
+    public function getCleanerUnavailableTimes(string $cleanerId, CleanerService $cleanerService)
+    {
+        $unavailableTimes = $cleanerService->getCleanerUnavailableDateTimes($cleanerId);
+
+        return $this->toJSON($unavailableTimes, 'unavailable_times');
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\BookingRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -11,88 +13,95 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 class Booking
 {
+    const DURATIONS = [2, 4];
+
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
-     * @Groups({"cleaner_list", "booking_list"})
+     * @Groups({"cleaner_list", "booking_create", "booking_list"})
      */
     private $id;
 
     /**
-     * @ORM\ManyToOne(targetEntity=Cleaner::class, inversedBy="bookings", cascade={"persist", "remove"})
-     * @ORM\JoinColumn(nullable=false)
+     * @ORM\Column(type="datetime")
+     * @Groups({"cleaner_list", "booking_create", "booking_list", "unavailable_times"})
+     */
+    private $startDate;
+
+    /**
+     * @ORM\Column(type="datetime")
+     * @Groups({"cleaner_list", "booking_create", "booking_list", "unavailable_times"})
+     */
+    private $endDate;
+
+    /**
+     * @ORM\OneToMany(targetEntity=BookingAssignment::class, mappedBy="booking", orphanRemoval=true)
      * @Groups({"booking_list"})
      */
-    private $cleaner;
+    private $bookingAssignments;
 
-    /**
-     * @ORM\Column(type="date")
-     * @Groups({"cleaner_list", "booking_list"})
-     */
-    private $date;
-
-    /**
-     * @ORM\Column(type="time")
-     * @Groups({"cleaner_list", "booking_list"})
-     */
-    private $startTime;
-
-    /**
-     * @ORM\Column(type="time")
-     * @Groups({"cleaner_list", "booking_list"})
-     */
-    private $endTime;
+    public function __construct()
+    {
+        $this->bookingAssignments = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getCleaner(): ?Cleaner
+    public function getStartDate(): ?\DateTimeInterface
     {
-        return $this->cleaner;
+        return $this->startDate;
     }
 
-    public function setCleaner(?Cleaner $cleaner): self
+    public function setStartDate(\DateTimeInterface $startDate): self
     {
-        $this->cleaner = $cleaner;
+        $this->startDate= $startDate;
 
         return $this;
     }
 
-    public function getDate(): ?\DateTimeInterface
+    public function getEndDate(): ?\DateTimeInterface
     {
-        return $this->date;
+        return $this->endDate;
     }
 
-    public function setDate(\DateTimeInterface $date): self
+    public function setEndDate(\DateTimeInterface $endDate): self
     {
-        $this->date = $date;
+        $this->endDate= $endDate;
 
         return $this;
     }
 
-    public function getStartTime(): ?\DateTimeInterface
+    /**
+     * @return Collection|BookingAssignment[]
+     */
+    public function getBookingAssignments(): Collection
     {
-        return $this->startTime;
+        return $this->bookingAssignments;
     }
 
-    public function setStartTime(\DateTimeInterface $startTime): self
+    public function addBookingAssignment(BookingAssignment $bookingAssignment): self
     {
-        $this->startTime = $startTime;
+        if (!$this->bookingAssignments->contains($bookingAssignment)) {
+            $this->bookingAssignments[] = $bookingAssignment;
+            $bookingAssignment->setBookingId($this);
+        }
 
         return $this;
     }
 
-    public function getEndTime(): ?\DateTimeInterface
+    public function removeBookingAssignment(BookingAssignment $bookingAssignment): self
     {
-        return $this->endTime;
-    }
-
-    public function setEndTime(\DateTimeInterface $endTime): self
-    {
-        $this->endTime= $endTime;
+        if ($this->bookingAssignments->contains($bookingAssignment)) {
+            $this->bookingAssignments->removeElement($bookingAssignment);
+            // set the owning side to null (unless already changed)
+            if ($bookingAssignment->getBookingId() === $this) {
+                $bookingAssignment->setBookingId(null);
+            }
+        }
 
         return $this;
     }

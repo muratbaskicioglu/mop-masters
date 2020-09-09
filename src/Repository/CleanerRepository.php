@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Cleaner;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -19,32 +20,17 @@ class CleanerRepository extends ServiceEntityRepository
         parent::__construct($registry, Cleaner::class);
     }
 
-    // /**
-    //  * @return Cleaner[] Returns an array of Cleaner objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    /**
+     * @param array $cleanerIds
+     * @return int|mixed|string
+     */
+    public function getCompanyCountsOfCleaners(array $cleanerIds): ?array
     {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('c.id', 'ASC')
-            ->setMaxResults(10)
+        return $this->createQueryBuilder('cl')
+            ->select('COUNT(DISTINCT cl.company) as distinct_count, COUNT(cl.company) as normal_count')
+            ->andWhere('cl.id IN (:cleanerIds)')
+            ->setParameter('cleanerIds', $cleanerIds)
             ->getQuery()
-            ->getResult()
-        ;
+            ->getResult(AbstractQuery::HYDRATE_ARRAY);
     }
-    */
-
-    /*
-    public function findOneBySomeField($value): ?Cleaner
-    {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
-    }
-    */
 }

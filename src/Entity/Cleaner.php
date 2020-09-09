@@ -17,7 +17,7 @@ class Cleaner
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
-     * @Groups({"cleaner_list", "booking_list"})
+     * @Groups({"cleaner_list", "booking_list", "create_booking"})
      */
     private $id;
 
@@ -28,20 +28,27 @@ class Cleaner
     private $name;
 
     /**
-     * @ORM\ManyToOne(targetEntity=Company::class, inversedBy="cleaners")
+     * @ORM\ManyToOne(
+     *     targetEntity=Company::class,
+     *     inversedBy="cleaners",
+     * )
      * @ORM\JoinColumn(nullable=false)
      * @Groups({"cleaner_list"})
      */
     private $company;
 
     /**
-     * @ORM\OneToMany(targetEntity=Booking::class, mappedBy="cleaner", orphanRemoval=true)
+     * @ORM\OneToMany(
+     *     targetEntity=BookingAssignment::class,
+     *     mappedBy="cleanerId",
+     *     orphanRemoval=true,
+     * )
      */
-    private $bookings;
+    private $bookingAssignments;
 
     public function __construct()
     {
-        $this->bookings = new ArrayCollection();
+        $this->bookingAssignments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -81,43 +88,33 @@ class Cleaner
     }
 
     /**
-     * @return Collection|Booking[]
+     * @return Collection|BookingAssignment[]
      */
-    public function getBookings(): Collection
+    public function getBookingAssignments(): Collection
     {
-        return $this->bookings;
+        return $this->bookingAssignments;
     }
 
-    public function addBooking(Booking $booking): self
+    public function addBookingAssignment(BookingAssignment $bookingAssignment): self
     {
-        if (!$this->bookings->contains($booking)) {
-            $this->bookings[] = $booking;
-            $booking->setCleaner($this);
+        if (!$this->bookingAssignments->contains($bookingAssignment)) {
+            $this->bookingAssignments[] = $bookingAssignment;
+            $bookingAssignment->setCleanerId($this);
         }
 
         return $this;
     }
 
-    public function removeBooking(Booking $booking): self
+    public function removeBookingAssignment(BookingAssignment $bookingAssignment): self
     {
-        if ($this->bookings->contains($booking)) {
-            $this->bookings->removeElement($booking);
+        if ($this->bookingAssignments->contains($bookingAssignment)) {
+            $this->bookingAssignments->removeElement($bookingAssignment);
             // set the owning side to null (unless already changed)
-            if ($booking->getCleaner() === $this) {
-                $booking->setCleaner(null);
+            if ($bookingAssignment->getCleanerId() === $this) {
+                $bookingAssignment->setCleanerId(null);
             }
         }
 
         return $this;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'id' => $this->getId(),
-            'name' => $this->getName(),
-            'company' => $this->getCompany(),
-            'bookings' => $this->getBookings(),
-        ];
     }
 }

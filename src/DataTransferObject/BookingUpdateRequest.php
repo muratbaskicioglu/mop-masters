@@ -5,11 +5,10 @@ namespace App\DataTransferObject;
 use Swagger\Annotations as SWG;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\HttpFoundation\Request;
+use App\Entity\Booking;
 
 class BookingUpdateRequest implements RequestDTOInterface
 {
-    const DURATIONS = [2, 4];
-
     /**
      * @Assert\NotBlank()
      * @Assert\Date
@@ -28,7 +27,7 @@ class BookingUpdateRequest implements RequestDTOInterface
 
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice(choices=BookingCreateRequest::DURATIONS, message="Choose a valid service duration by hours.")
+     * @Assert\Choice(choices=Booking::DURATIONS, message="Choose a valid service duration by hours.")
      * @SWG\Property(type="integer")
      * @var integer
      */

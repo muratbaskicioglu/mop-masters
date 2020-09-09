@@ -5,18 +5,16 @@ namespace App\DataTransferObject;
 use Swagger\Annotations as SWG;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\HttpFoundation\Request;
+use App\Entity\Booking;
 
 class BookingCreateRequest implements RequestDTOInterface
 {
-    const DURATIONS = [2, 4];
-
     /**
      * @Assert\NotBlank()
-     * @SWG\Property(type="string", description="The unique identifier of the user.")
-     * @var string
+     * @SWG\Property(type="array", description="The array of cleaners.")
+     * @var array
      */
-    private $cleanerId;
-
+    private $cleanerIds;
 
     /**
      * @Assert\NotBlank()
@@ -36,7 +34,7 @@ class BookingCreateRequest implements RequestDTOInterface
 
     /**
      * @Assert\NotBlank()
-     * @Assert\Choice(choices=BookingCreateRequest::DURATIONS, message="Choose a valid service duration by hours.")
+     * @Assert\Choice(choices=Booking::DURATIONS, message="Choose a valid service duration by hours.")
      * @SWG\Property(type="integer")
      * @var integer
      */
@@ -46,15 +44,15 @@ class BookingCreateRequest implements RequestDTOInterface
     {
         $data = json_decode($request->getContent(), true);
 
-        $this->cleanerId = $data['cleanerId'] ?? '';
+        $this->cleanerIds = $data['cleanerIds'] ?? '';
         $this->date = $data['date'] ?? '';
         $this->startTime = $data['startTime'] ?? '';
         $this->durationByHours = $data['durationByHours'] ?? '';
     }
 
-    public function getCleanerId(): string
+    public function getCleanerIds(): array
     {
-        return $this->cleanerId;
+        return $this->cleanerIds;
     }
 
     public function getDate(): string

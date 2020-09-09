@@ -3,9 +3,10 @@
 namespace App\Repository;
 
 use App\Entity\Booking;
+use App\Entity\BookingAssignment;
+use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\AbstractQuery;
-use Doctrine\ORM\ORMException;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -21,54 +22,92 @@ class BookingRepository extends ServiceEntityRepository
         parent::__construct($registry, Booking::class);
     }
 
-    public function findByCleanerIdBetweenDateTime($cleaner, $date, $startTime, $endTime)
+    /**
+     * Get there is any assigned cleaner between the dates.
+     *
+     * @param string $bookingId
+     * @param array $cleanerIds
+     * @param DateTimeInterface $startDate
+     * @param DateTimeInterface $endDate
+     * @return int|mixed|string
+     */
+    public function getAssignedCleaners(
+        string $bookingId,
+        array $cleanerIds,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate
+    ): ?array
     {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.cleaner = :cleaner')
-            ->andWhere('b.date = :date')
-            ->andWhere('(b.startTime BETWEEN :startTime AND :startTime) OR (b.endTime BETWEEN :startTime AND :endTime)')
-            ->setParameter('cleaner', $cleaner)
-            ->setParameter('date', $date->format('Y-m-d'))
-            ->setParameter('startTime', $startTime->format('H:i:s'))
-            ->setParameter('endTime', $endTime->format('H:i:s'))
+        $qb = $this->createQueryBuilder('b')
+            ->innerJoin(BookingAssignment::class, 'ba', Join::WITH, 'ba.booking = b.id');
+
+        if ($bookingId) {
+            $qb->andWhere('b.id != :bookingId');
+        }
+
+        $qb->andWhere(':startDate <= b.endDate')
+            ->andWhere(':endDate >= b.startDate')
+            ->andWhere('ba.cleaner IN (:cleanerIds)');
+
+        if ($bookingId) {
+            $qb->setParameter('bookingId', $bookingId);
+        }
+
+        return $qb->setParameter('endDate', $endDate)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('cleanerIds', $cleanerIds)
             ->getQuery()
-            ->getResult(AbstractQuery::HYDRATE_ARRAY)
-        ;
+            ->getResult();
     }
 
-    public function create($cleaner, $date, $startTime, $endTime)
+    /**
+     * Return created booking.
+     *
+     * @param DateTimeInterface $startDate
+     * @param DateTimeInterface $endDate
+     * @param array $cleaners
+     * @return Booking
+     */
+    public function create(DateTimeInterface $startDate, DateTimeInterface $endDate, array $cleaners): Booking
     {
-        $newBooking = new Booking();
-        $newBooking->setCleaner($cleaner);
-        $newBooking->setDate($date);
-        $newBooking->setStartTime($startTime);
-        $newBooking->setEndTime($endTime);
+        $booking = new Booking();
+        $booking->setStartDate($startDate);
+        $booking->setEndDate($endDate);
 
-        $this->getEntityManager()->persist($newBooking);
-        $this->getEntityManager()->flush();
+        $this->getEntityManager()->persist($booking);
 
-        return $newBooking;
-    }
+        for ($i = 0; $i < count($cleaners); $i++) {
+            $bookingAssignment = new BookingAssignment();
+            $bookingAssignment->setBooking($booking);
+            $bookingAssignment->setCleaner($cleaners[$i]);
 
-    public function update($booking, $date, $startTime, $endTime)
-    {
-        $booking->setDate($date);
-        $booking->setStartTime($startTime);
-        $booking->setEndTime($endTime);
+            $this->getEntityManager()->persist($bookingAssignment);
+        }
 
         $this->getEntityManager()->flush();
 
         return $booking;
     }
-    /*
-    public function findOneBySomeField($value): ?Booking
+
+    /**
+     * Returns updated booking.
+     *
+     * @param Booking $booking
+     * @param DateTimeInterface $startDate
+     * @param DateTimeInterface $endDate
+     * @return Booking
+     */
+    public function update(
+        Booking $booking,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate
+    ): Booking
     {
-        return $this->createQueryBuilder('b')
-            ->andWhere('b.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        $booking->setStartDate($startDate);
+        $booking->setEndDate($endDate);
+
+        $this->getEntityManager()->flush();
+
+        return $booking;
     }
-    */
 }
