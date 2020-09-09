@@ -13,6 +13,12 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 class Booking
 {
+    const TIME_ZONE = 'Asia/Dubai';
+    const DATE_FORMAT = 'Y-m-d';
+    const HOLIDAY_OF_WEEK_IN_NUMBER = 5;
+    const TIME_FORMAT = 'H:i:s';
+    const START_TIME_STRING = '08:00:00';
+    const END_TIME_STRING = '22:00:00';
     const DURATIONS = [2, 4];
 
     /**

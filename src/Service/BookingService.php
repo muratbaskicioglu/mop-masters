@@ -8,9 +8,11 @@ use App\Entity\Booking;
 use App\Repository\BookingRepository;
 use DateInterval;
 use DateTime;
+use DateTimeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Validator\Constraints\Date;
 
 class BookingService
 {
@@ -41,9 +43,62 @@ class BookingService
         BookingRepository $bookingRepository
     ) {
         $this->logger = $logger;
+        $logger->info((new DateTime())->format('Y-m-d H:i:s'));
         $this->cleanerService = $cleanerService;
         $this->bookingAssignmentService = $bookingAssignmentService;
         $this->bookingRepository = $bookingRepository;
+    }
+
+    /**
+     * Calculates end time from start time adding by duration hours.
+     *
+     * @param $startTime
+     * @param $durationByHours
+     * @return DateTime
+     */
+    public function calculateEndTime($startTime, $durationByHours): DateTime
+    {
+        return DateTime::createFromFormat(
+            self::TIME_FORMAT,
+            $startTime
+        )
+            ->add(new DateInterval("PT{$durationByHours}H"));
+    }
+
+    /**
+     * Check if given dates are allowed for booking.
+     * This method blocks bookings directly with configurations.
+     * We can think of the idea below instead of this implementation.
+     * If we want to specify different working hours or holidays for each cleaner,
+     * we should implement this logic in CleanerService as two methods.
+     * One of those, checks the given time is in cleaners' working times and
+     * the second one checks do cleaners have any permit or holiday on those dates.
+     *
+     * @param DateTimeInterface $startDate
+     * @param DateTimeInterface $endDate
+     * @return bool
+     */
+    public function isBookingAllowedAt(DateTimeInterface $startDate, DateTimeInterface $endDate): bool
+    {
+        $startTimeString = $_ENV['BOOKING_START_TIME_STRING'] ?? Booking::START_TIME_STRING;
+        $endTimeString = $_ENV['BOOKING_END_TIME_STRING'] ?? Booking::END_TIME_STRING;
+        $holidayOfWeekInNumber = $_ENV['HOLIDAY_OF_WEEK_IN_NUMBER'] ?? Booking::HOLIDAY_OF_WEEK_IN_NUMBER;
+        $dateFormat = $_ENV['BOOKING_DATE_FORMAT'] ?? Booking::DATE_FORMAT;
+        $timeFormat = $_ENV['BOOKING_TIME_FORMAT'] ?? Booking::TIME_FORMAT;
+
+        // Convert strings and selected dates to date time
+        $startTime = DateTime::createFromFormat($timeFormat, $startTimeString);
+        $endTime = DateTime::createFromFormat($timeFormat, $endTimeString);
+        $selectedStartTime = DateTime::createFromFormat($timeFormat, $startDate->format($timeFormat));
+        $selectedEndTime = DateTime::createFromFormat($timeFormat, $endDate->format($timeFormat));
+
+        return
+            $startDate > (new DateTime()) && // Should be post-dated
+            $selectedStartTime >= $startTime && $selectedStartTime <= $endTime &&
+            $selectedEndTime >= $startTime && $selectedEndTime <= $endTime &&
+            $startDate->format('N') !== $holidayOfWeekInNumber &&
+            $endDate->format('N') !== $holidayOfWeekInNumber
+        ;
     }
 
     /**
@@ -56,21 +111,15 @@ class BookingService
      */
     public function calculateBookingStartAndEndDate(string $date, string $startTime, int $durationByHours): ?Booking
     {
-        $endTime = DateTime::createFromFormat(
-            self::TIME_FORMAT,
-            $startTime
-        )
-            ->add(new DateInterval("PT{$durationByHours}H"));
+        $endTime = $this->calculateEndTime($startTime, $durationByHours);
         $startDate = new DateTime(
-            DateTime::createFromFormat(self::DATE_FORMAT, $date)
-                ->format(self::DATE_FORMAT).
+            $date.
             ' '.
             DateTime::createFromFormat(self::TIME_FORMAT, $startTime)
                 ->format(self::TIME_FORMAT)
         );
         $endDate = new DateTime(
-            DateTime::createFromFormat(self::DATE_FORMAT, $date)
-                ->format(self::DATE_FORMAT).
+            $date.
             ' '.
             DateTime::createFromFormat(self::TIME_FORMAT, $endTime->format(self::TIME_FORMAT))
                 ->format(self::TIME_FORMAT)
@@ -88,29 +137,59 @@ class BookingService
      *
      * @param string $bookingId
      * @param array $cleanerIds
-     * @param string $date
-     * @param string $startTime
-     * @param int $durationByHours
+     * @param DateTimeInterface $startDate
+     * @param DateTimeInterface $endDate
      * @return bool
      */
     public function checkCleanersAvailability(
         string $bookingId,
         array $cleanerIds,
-        string $date,
-        string $startTime,
-        int $durationByHours
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate
     ): bool
     {
-        $booking = $this->calculateBookingStartAndEndDate($date, $startTime, $durationByHours);
-
         $assignedCleaners = $this->bookingRepository->getAssignedCleaners(
             $bookingId,
             $cleanerIds,
-            $booking->getStartDate(),
-            $booking->getEndDate()
+            $startDate,
+            $endDate
         );
 
         return !count($assignedCleaners);
+    }
+
+    public function makePreflightChecks(
+        string $bookingId,
+        array $cleaners,
+        DateTimeInterface $startDate,
+        DateTimeInterface $endDate
+    ): void
+    {
+        $isBookingAllowedAt = $this->isBookingAllowedAt(
+            $startDate,
+            $endDate
+        );
+
+        if (!$isBookingAllowedAt) {
+            throw new HttpException(
+                Response::HTTP_NOT_ACCEPTABLE,
+                'Booking doesn\'t allowed on these date times.'
+            );
+        }
+
+        $isCleanersAvailable = $this->checkCleanersAvailability(
+            $bookingId,
+            $cleaners,
+            $startDate,
+            $endDate
+        );
+
+        if (!$isCleanersAvailable) {
+            throw new HttpException(
+                Response::HTTP_CONFLICT,
+                'Cleaners not available at that time.'
+            );
+        }
     }
 
     /**
@@ -121,6 +200,13 @@ class BookingService
      */
     public function create(BookingCreateRequest $bookingCreateRequest)
     {
+        $date = $bookingCreateRequest->getDate();
+        $startTime = $bookingCreateRequest->getStartTime();
+        $durationByHours = $bookingCreateRequest->getDurationByHours();
+        $bookingDates = $this->calculateBookingStartAndEndDate($date, $startTime, $durationByHours);
+        $startDate = $bookingDates->getStartDate();
+        $endDate = $bookingDates->getEndDate();
+
         $cleanerIds = $bookingCreateRequest->getCleanerIds();
 
         $isCleanersAtSameCompany = $this->cleanerService->isCleanersAtSameCompany(
@@ -134,28 +220,7 @@ class BookingService
             );
         }
 
-        $isCleanersAvailable = $this->checkCleanersAvailability(
-            '',
-            $bookingCreateRequest->getCleanerIds(),
-            $bookingCreateRequest->getDate(),
-            $bookingCreateRequest->getStartTime(),
-            $bookingCreateRequest->getDurationByHours(),
-        );
-
-        $this->logger->info($isCleanersAvailable);
-
-        if (!$isCleanersAvailable) {
-            throw new HttpException(
-                Response::HTTP_CONFLICT,
-                'Cleaners not available at that time.'
-            );
-        }
-
-        $booking = $this->calculateBookingStartAndEndDate(
-            $bookingCreateRequest->getDate(),
-            $bookingCreateRequest->getStartTime(),
-            $bookingCreateRequest->getDurationByHours()
-        );
+        $this->makePreflightChecks('', $cleanerIds, $startDate, $endDate);
 
         $cleaners = [];
 
@@ -164,8 +229,8 @@ class BookingService
         }
 
         return $this->bookingRepository->create(
-            $booking->getStartDate(),
-            $booking->getEndDate(),
+            $startDate,
+            $endDate,
             $cleaners
         );
     }
@@ -207,6 +272,13 @@ class BookingService
             );
         }
 
+        $date = $bookingUpdateRequest->getDate();
+        $startTime = $bookingUpdateRequest->getStartTime();
+        $durationByHours = $bookingUpdateRequest->getDurationByHours();
+        $bookingDates = $this->calculateBookingStartAndEndDate($date, $startTime, $durationByHours);
+        $startDate = $bookingDates->getStartDate();
+        $endDate = $bookingDates->getEndDate();
+
         $bookingAssignments = $booking->getBookingAssignments();
         $cleaners = [];
 
@@ -214,33 +286,12 @@ class BookingService
             $cleaners[] = $bookingAssignment->getCleaner();
         }
 
-        $isCleanersAvailable = $this->checkCleanersAvailability(
-            $bookingId,
-            $cleaners,
-            $bookingUpdateRequest->getDate(),
-            $bookingUpdateRequest->getStartTime(),
-            $bookingUpdateRequest->getDurationByHours()
-        );
-
-        $this->logger->info($isCleanersAvailable);
-
-        if (!$isCleanersAvailable) {
-            throw new HttpException(
-                Response::HTTP_CONFLICT,
-                'Cleaners not available at that time.'
-            );
-        }
-
-        $bookingDates = $this->calculateBookingStartAndEndDate(
-            $bookingUpdateRequest->getDate(),
-            $bookingUpdateRequest->getStartTime(),
-            $bookingUpdateRequest->getDurationByHours()
-        );
+        $this->makePreflightChecks($bookingId, $cleaners, $startDate, $endDate);
 
         return $this->bookingRepository->update(
             $booking,
-            $bookingDates->getStartDate(),
-            $bookingDates->getEndDate()
+            $startDate,
+            $endDate
         );
     }
 }
