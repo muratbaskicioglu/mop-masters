@@ -12,13 +12,22 @@ class ApiResponse extends JsonResponse
      * @param string $message
      * @param mixed $data
      * @param array $errors
+     * @param int $code
      * @param int $status
      * @param array $headers
      * @param bool $json
      */
-    public function __construct(string $message, $data = null, array $errors = [], int $status = 200, array $headers = [], bool $json = false)
+    public function __construct(
+        string $message,
+        $data = null,
+        array $errors = [],
+        int $code = 0,
+        int $status = 200,
+        array $headers = [],
+        bool $json = false
+    )
     {
-        parent::__construct($this->format($message, $data, $errors), $status, $headers, $json);
+        parent::__construct($this->format($message, $data, $errors, $code), $status, $headers, $json);
     }
 
     /**
@@ -27,20 +36,20 @@ class ApiResponse extends JsonResponse
      * @param string $message
      * @param mixed $data
      * @param array $errors
-     *
+     * @param int $code
      * @return array
      */
-    private function format(string $message, $data = null, array $errors = [])
+    private function format(string $message, $data = null, array $errors = [], int $code = 0)
     {
-        if ($data === null) {
-            $data = new \ArrayObject();
-        }
+        $response['code'] = $code;
 
         if ($message) {
             $response['message'] = $message;
         }
 
-        $response['data'] = $data;
+        if ($data) {
+            $response['data'] = $data;
+        }
 
         if ($errors) {
             $response['errors'] = $errors;

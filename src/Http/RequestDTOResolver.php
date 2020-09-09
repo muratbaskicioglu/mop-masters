@@ -76,7 +76,7 @@ class RequestDTOResolver implements ArgumentValueResolverInterface
         $errors = $this->validator->validate($dto);
 
         if (count($errors) > 0) {
-            throw new RequestValidatorException($errors, $this->serializer);
+            throw new RequestValidatorException($errors);
         }
 
         yield $dto;

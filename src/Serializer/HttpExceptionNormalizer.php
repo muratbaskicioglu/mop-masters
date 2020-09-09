@@ -2,13 +2,14 @@
 
 namespace App\Serializer;
 
+use App\Exception\RequestValidatorException;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class HttpExceptionNormalizer implements NormalizerInterface
 {
     /**
-     * @param HttpException $exception
+     * @param $exception
      * @param null $format
      * @param array $context
      *
@@ -16,7 +17,7 @@ class HttpExceptionNormalizer implements NormalizerInterface
      */
     public function normalize($exception, $format = null, array $context = [])
     {
-        return [];
+        return null;
     }
 
     /**
@@ -27,6 +28,6 @@ class HttpExceptionNormalizer implements NormalizerInterface
      */
     public function supportsNormalization($data, $format = null): ?bool
     {
-        return $data instanceof HttpException;
+        return $data instanceof HttpException && !($data instanceof RequestValidatorException);
     }
 }
