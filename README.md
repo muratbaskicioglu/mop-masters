@@ -82,6 +82,27 @@ BOOKING_START_TIME_STRING=      # service start time(08:00:00)
 BOOKING_END_TIME_STRING=        # end time 22:00:00
 ```
 
+# Usage
+
+This service has a few endpoints to fetch cleaners info and previously created bookings, also make a new booking, and update them with new dates. The project already has an automatically generated API documentation but I will give below short explanation about services.
+
+#### Get cleaners' list with their linked companies
+
+You can use `/cleaners` with `GET` to get a list of all cleaners.
+
+#### Get booking dates of specified cleaner to know what times the cleaner are available
+
+Use `/cleaners/{cleanerId}/unavailable-times` with `GET` to get unavailable date times of specific cleaner.
+
+#### Create bookings with available cleaners
+
+Use `/bookings` with `POST` and booking detail parameters. You should specify which cleaners(`cleanerIds`) you would book within a specified `date`, `startTime`, and `duration` of the cleaning service.
+
+#### Update previously created booking dates
+
+You can use `/bookings/{bookingId}` to update current booking date times and duration with giving same parameters.
+
+
 ## Model Structure
 
 ```JS
